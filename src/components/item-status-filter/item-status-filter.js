@@ -1,22 +1,16 @@
-import React, {Component} from 'react';
+import React from 'react';
 
 import './item-status-filter.css';
 
-export default class ItemStatusFilter extends Component {
-    state = {
-        statusFilter: this.props.statusFilter
-    };
-
-    buttons = [
+const ItemStatusFilter = ({statusFilter, onFilterChange}) => {
+    const buttons = [
         {name: 'all', label: 'All'},
         {name: 'active', label: 'Active'},
         {name: 'done', label: 'Done'},
-    ]
+    ];
 
-    render() {
-        const {statusFilter, onFilterChange} = this.props;
-
-        const buttons = this.buttons.map(({name, label}) => {
+    const renderButtons = () => {
+        return buttons.map(({name, label}) => {
             const isActive = statusFilter === name;
             const buttonClass = isActive ? 'btn-info' : 'btn-outline-secondary';
 
@@ -30,11 +24,13 @@ export default class ItemStatusFilter extends Component {
                 </button>
             );
         });
+    };
 
-        return (
-            <div className="btn-groups">
-                {buttons}
-            </div>
-        );
-    }
-}
+    return (
+        <div className="btn-groups">
+            {renderButtons()}
+        </div>
+    );
+};
+
+export default ItemStatusFilter;

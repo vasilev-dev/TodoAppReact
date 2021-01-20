@@ -1,5 +1,5 @@
 .todo-list-item {
-  font-size: 1.25rem;
+  font-size: 1.20rem;
 }
 
 .todo-list-item button {
@@ -12,6 +12,7 @@
   line-height: 35px;
   cursor: pointer;
   user-select: none;
+  color: black;
 }
 
 .todo-list-item.done .todo-list-item-label {

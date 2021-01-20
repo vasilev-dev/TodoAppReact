@@ -1,123 +1,95 @@
-import React, {Component} from 'react';
+import React, {useEffect, useState} from 'react';
+import ApiService from "../../services/api-service";
 
-import AppHeader from '../app-header';
-import SearchPanel from '../search-panel';
-import TodoList from '../todo-list';
-import ItemStatusFilter from '../item-status-filter';
+import AppHeader from '../app-header/app-header';
+import SearchPanel from '../search-panel/search-panel';
+import TodoList from '../todo-list/todo-list';
+import ItemStatusFilter from '../item-status-filter/item-status-filter';
+import ItemAddForm from "../item-add-form/item-add-form";
 
 import './app.css';
-import ItemAddForm from "../item-add-form";
 
-export default class App extends Component {
-    maxId = 100;
+const App = () => {
+    const [todoData, setTodoData] = useState([]);
+    const [labelFilter, setLabelFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('active'); // all, active, done
 
-    state = {
-        todoData: [
-            this.createTodoItem('Drink Coffee'),
-            this.createTodoItem('Make Awesome App'),
-            this.createTodoItem('Have a lunch')
-        ],
-        labelFilter: '',
-        statusFilter: 'active' // all, active, done
+    const apiService = new ApiService();
+
+    useEffect(() => {
+       async function fetchData() {
+           const items = await apiService.getItems();
+           setTodoData(items);
+       }
+       fetchData().then();
+    }, []);
+
+    const getIndexById = (id) => {
+        return todoData.findIndex(item => item.id === id);
     };
 
-    createTodoItem(label) {
-        return {
-            label,
-            important: false,
-            done: false,
-            id: this.getNextId()
-        }
+    const onCreateTodoItem = async (label) => {
+        const item = {
+            label: label,
+            checked: false,
+            important: false
+        };
+
+        const newTask = await apiService.createItem(item);
+
+        setTodoData([...todoData, newTask]);
     };
 
-    getNextId() {
-        return this.maxId++;
-    }
+    const onDeleteItem = async (id) => {
+        await apiService.deleteItem(id);
 
-    getIndexById(id) {
-        return this.state.todoData.findIndex(el => el.id === id);
-    }
-
-    deleteItem = (id) => {
-        this.setState(({todoData}) => {
-            const index = this.getIndexById(id);
-
-            const newArray = [
-                ...todoData.slice(0, index),
-                ...todoData.slice(index + 1)
-            ];
-
-            return {
-                todoData: newArray
-            }
-        });
-    };
-
-    addItem = (itemLabel) => {
-        this.setState(({todoData}) => {
-           const newItem = this.createTodoItem(itemLabel);
-
-           const newArray = [
-               ...todoData,
-               newItem
-           ];
-
-           return {
-               todoData: newArray
-           };
-        });
-    };
-
-    toggleProperty(arr, id, propName) {
-        const idx = this.getIndexById(id);
-
-        const oldItem = arr[idx];
-        const newItem = {...oldItem, [propName]: !oldItem[propName]};
+        const index = getIndexById(id);
 
         const newArray = [
-            ...arr.slice(0, idx),
-            newItem,
-            ...arr.slice(idx + 1)
+            ...todoData.slice(0, index),
+            ...todoData.slice(index + 1)
         ];
 
-        return newArray;
+        setTodoData(newArray);
+    };
+
+    const onUpdateItem = async (item) => {
+        await apiService.updateItem(item);
+
+        const idx = getIndexById(item.id);
+
+        const newArray = [
+            ...todoData.slice(0, idx),
+            item,
+            ...todoData.slice(idx + 1)
+        ];
+
+        setTodoData(newArray);
     }
 
-    onToggleImportant = (id) => {
-        this.setState(({todoData}) => {
-            return {
-                todoData: this.toggleProperty(todoData, id, 'important')
-            }
-        });
+    const onToggleImportant = async (item) => {
+        await onUpdateItem({...item, important: !item.important});
     };
 
-    onToggleDone = (id) => {
-        this.setState(({todoData}) => {
-            return {
-                todoData: this.toggleProperty(todoData, id, 'done')
-            };
-        });
+    const onToggleDone = async (item) => {
+        await onUpdateItem({...item, done: !item.done});
     };
 
-    onChangeSearchFilter = (value) => {
-        this.setState({
-            labelFilter: value
-        });
+    const onChangeSearchFilter = (value) => {
+        setLabelFilter(value);
     };
 
-    onStatusFilterChange = (value) => {
-        this.setState({
-            statusFilter: value
-        });
+    const onStatusFilterChange = (value) => {
+        setStatusFilter(value);
     }
 
-    search(items, filterValue) {
+    const search = (items, filterValue) => {
         const lowerFilterValue = filterValue.toLowerCase();
 
         return items.filter(item => item.label.toLowerCase().includes(lowerFilterValue));
     }
 
-    filter(items, filter) {
+    const filter = (items, filter) => {
         switch (filter) {
             case 'all':
                 return items;
@@ -130,30 +102,28 @@ export default class App extends Component {
         }
     };
 
-    render() {
-        const {todoData, labelFilter, statusFilter} = this.state;
-        const visibleItems = this.filter(this.search(todoData, labelFilter), statusFilter);
+    const visibleItems = filter(search(todoData, labelFilter), statusFilter);
+    const doneCount = todoData.filter(item => item.done).length;
+    const todoCount = todoData.length - doneCount;
 
-        const doneCount = todoData.filter(item => item.done).length;
-        const todoCount = todoData.length - doneCount;
-
-        return (
-            <div className="todo-app">
-                <AppHeader toDo={todoCount} done={doneCount}/>
-                <div className="top-panel d-flex">
-                    <SearchPanel onChange={this.onChangeSearchFilter}/>
-                    <ItemStatusFilter statusFilter={statusFilter} onFilterChange={this.onStatusFilterChange}/>
-                </div>
-
-                <TodoList
-                    todos={visibleItems}
-                    onDeleted={this.deleteItem}
-                    onToggleImportant={this.onToggleImportant}
-                    onToggleDone={this.onToggleDone}
-                />
-
-                <ItemAddForm onItemAdded={this.addItem}/>
+    return (
+        <div className="todo-app">
+            <AppHeader toDo={todoCount} done={doneCount}/>
+            <div className="top-panel d-flex">
+                <SearchPanel onChange={onChangeSearchFilter}/>
+                <ItemStatusFilter statusFilter={statusFilter} onFilterChange={onStatusFilterChange}/>
             </div>
-        );
-    }
+
+            <TodoList
+                todos={visibleItems}
+                onDeleted={onDeleteItem}
+                onToggleImportant={onToggleImportant}
+                onToggleDone={onToggleDone}
+            />
+
+            <ItemAddForm onItemAdded={onCreateTodoItem}/>
+        </div>
+    );
 };
+
+export default App;
